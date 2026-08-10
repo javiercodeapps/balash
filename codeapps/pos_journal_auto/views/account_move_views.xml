@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_move_form_inherit_pos_journal_auto" model="ir.ui.view">
+        <field name="name">account.move.form.inherit.pos.journal.auto</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/header" position="inside">
+                <field name="can_switch_to_electronic_journal" invisible="1"/>
+            </xpath>
+            <xpath expr="//button[@name='action_reverse']" position="after">
+                <button name="action_switch_to_electronic_journal"
+                        string="Change to Electronic Journal"
+                        type="object"
+                        groups="account.group_account_invoice"
+                        invisible="not can_switch_to_electronic_journal"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <t t-name="pos_journal_auto.SwitchToElectronicJournalButton">
+        <button class="control-button btn btn-secondary btn-lg lh-lg flex-grow-1 flex-shrink-1"
+                t-on-click="() => this.click()"
+                t-if="isVisible">
+            <i class="fa fa-exchange me-1"></i>
+            <span><t t-esc="label"/></span>
+        </button>
+    </t>
+
+</templates>

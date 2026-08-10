@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_pos_journal_auto_switch_wizard_form" model="ir.ui.view">
+        <field name="name">pos.journal.auto.switch.wizard.form</field>
+        <field name="model">pos.journal.auto.switch.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Change to Electronic Journal">
+                <field name="move_id" invisible="1"/>
+                <field name="company_id" invisible="1"/>
+                <group>
+                    <group>
+                        <field name="current_journal_id" readonly="1"/>
+                        <field name="target_journal_id"/>
+                        <field name="new_document_type_id" readonly="1"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_switch_journal" type="object"
+                            string="Change to Electronic Journal" class="oe_highlight"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>
