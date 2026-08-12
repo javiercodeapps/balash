@@ -170,17 +170,17 @@
         </div>
 
                     <!-- ARCA / AFIP QR -->
-                    <div t-if="o.afip_qr_code" class="mt-3 text-center">
- <img t-att-src="request.env['ir.config_parameter'].sudo().get_param('web.base.url') + '/report/barcode/?barcode_type=%s&amp;value=%s&amp;width=%s&amp;height=%s' % ('QR', o.afip_qr_code, 300, 300)" 
+                    <div t-if="o.l10n_ar_afip_qr_code" class="mt-3 text-center">
+ <img t-att-src="request.env['ir.config_parameter'].sudo().get_param('web.base.url') + '/report/barcode/?barcode_type=%s&amp;value=%s&amp;width=%s&amp;height=%s' % ('QR', o.l10n_ar_afip_qr_code, 300, 300)" 
          alt="qr" style="height:100px"/>                    <br />
                     <span>
                         CAE:
-                        <span t-field="o.afip_auth_code" />
+                        <span t-field="o.l10n_ar_afip_auth_code" />
                     </span>
                     <br />
                     <span>
                         Vto CAE:
-                        <span t-field="o.afip_auth_code_due" />
+                        <span t-field="o.l10n_ar_afip_auth_code_due" />
                     </span>
                     </div>
                 </div>
