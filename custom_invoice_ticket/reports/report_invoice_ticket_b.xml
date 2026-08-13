@@ -43,7 +43,7 @@
                         <span t-if="o.partner_id.city" t-field="o.partner_id.city" />
                     </div>
                     <!-- Invoice Lines -->
-                    <table class="table table-sm table-borderless mt-2" style="width: 100%; font-size: 12px;">
+                    <table class="table table-sm table-borderless mt-2" style="width: 80%; font-size: 12px;">
                         <thead>
                             <tr class="border-bottom">
                                 <th class="text-right">Cant</th>
