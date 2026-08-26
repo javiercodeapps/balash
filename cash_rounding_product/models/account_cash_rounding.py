@@ -16,42 +16,87 @@ class AccountCashRounding(models.Model):
     )
 
 
+# -*- coding: utf-8 -*-
+import logging
+from odoo import models, fields, api
+
+# Inicializamos el logger de Odoo
+_logger = logging.getLogger(__name__)
+
+class AccountCashRounding(models.Model):
+    _inherit = 'account.cash.rounding'
+
+    _product_id = fields.Many2one(
+        'product.product', 
+        string='Producto de Redondeo (AFIP)',
+        domain=[('type', '=', 'service')],
+        help="Producto con IVA Exento o 0% indispensable para la validación de ARCA"
+    )
+
 class AccountMove(models.Model):
     _inherit = 'account.move'
 
     @api.depends('invoice_line_ids')
     def _compute_cash_rounding(self):
         """
-        Odoo nativo calcula el redondeo y crea una línea huérfana en 'line_ids'.
-        Heredamos el método para forzar que esa línea use tu producto y sus impuestos.
+        Intercepta el cálculo nativo de redondeo, inyecta la diferencia
+        como un producto comercial real e imprime los logs de control.
         """
-        # Ejecutamos primero el cálculo nativo de Odoo para que cree la diferencia
         super(AccountMove, self)._compute_cash_rounding()
 
         for move in self:
-            # Si la factura tiene un método de redondeo asignado y tiene tu producto configurado
-            if move.cash_rounding_id and move.cash_rounding_id.rounding_product_id:
+            # --- LOG DE DIAGNÓSTICO: Productos antes del proceso ---
+            _logger.info("=================== AUDITORÍA DE FACTURA POS: %s ===================", move.name or 'Borrador')
+            _logger.info("PRODUCTOS DETECTADOS EN LA FACTURA ANTES DEL REDONDEO:")
+            for line in move.invoice_line_ids:
+                _logger.info(
+                    "- Producto: %s | Cantidad: %s | Precio Unitario: %s | Total Línea: %s | Impuestos ID: %s",
+                    line.product_id.name, 
+                    line.quantity, 
+                    line.price_unit, 
+                    line.price_total,
+                    line.tax_ids.ids
+                )
+            _logger.info("Monto Total de la Factura (ImpTotal): %s", move.amount_total)
+            _logger.info("====================================================================")
+
+            if move.cash_rounding_id and move.cash_rounding_id.rounding_product_id and move.is_invoice():
                 rounding_product = move.cash_rounding_id.product_id
-                
-                # Buscamos la línea de redondeo que Odoo acaba de crear en el asiento (suele no tener product_id)
                 rounding_lines = move.line_ids.filtered(lambda l: l.is_rounding_line)
                 
-                for line in rounding_lines:
-                    # Forzamos los datos del producto para que la Localización Argentina la procese correctamente
-                    line.write({
+                if rounding_lines:
+                    rounding_amount = sum(line.balance for line in rounding_lines)
+                    
+                    _logger.info(">>> Redondeo técnico nativo detectado: %s. Reemplazando por línea de producto...", rounding_amount)
+                    
+                    # Eliminamos la línea técnica nativa que rompe la polinómica
+                    move.line_ids -= rounding_lines
+                    
+                    # Calculamos el precio según el tipo de documento
+                    price_unit = -rounding_amount if move.is_sale_document() else rounding_amount
+                    
+                    # Inyectamos la línea comercial real
+                    new_rounding_line = self.env['account.move.line'].new({
+                        'move_id': move.id,
                         'product_id': rounding_product.id,
-                        'name': rounding_product.display_name or line.name,
+                        'name': rounding_product.display_name,
+                        'quantity': 1.0,
+                        'price_unit': price_unit,
                         'product_uom_id': rounding_product.uom_id.id,
-                        # Sincronizamos las cuentas contables del producto si es necesario
-                        'account_id': rounding_product.property_account_income_id.id or line.account_id.id,
+                        'display_type': 'product',
                     })
                     
-                    # ASIGNACIÓN DE IMPUESTOS: Clave para AFIP
                     if rounding_product.taxes_id:
-                        # Filtrar impuestos correctos según la compañía de la factura
-                        taxes = rounding_product.taxes_id.filtered(lambda t: t.company_id == move.company_id)
-                        line.tax_ids = [(6, 0, taxes.ids)]
-                # RECALCULO DE LA POLINÓMICA: Esto resuelve el error 10048
-                # Forzamos a Odoo a re-computar las bases del IVA y totales de la localización argentina
-                if rounding_lines:
-                    move._recompute_tax_lines()
+                        company_taxes = rounding_product.taxes_id.filtered(lambda t: t.company_id == move.company_id)
+                        new_rounding_line.tax_ids = [(6, 0, company_taxes.ids)]
+                    
+                    move.invoice_line_ids += new_rounding_line
+                    
+                    # Forzamos el recálculo general
+                    move._compute_tax_totals()
+                    
+                    # --- LOG DE DIAGNÓSTICO: Verificación Post-Inyección ---
+                    _logger.info(">>> LÍNEA DE REDONDEO INYECTADA CON ÉXITO:")
+                    _logger.info("- Producto: %s | Precio: %s | Impuestos: %s", rounding_product.name, price_unit, new_rounding_line.tax_ids.ids)
+                    _logger.info("Nuevo Monto Total Calculado (Post-Redondeo): %s", move.amount_total)
+                    _logger.info("====================================================================")
