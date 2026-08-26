@@ -9,8 +9,6 @@ class AccountCashRounding(models.Model):
         comodel_name='product.product',
         string='Rounding Product',
         domain="[('type', '=', 'service')]",
-        help='Product used for the rounding line on invoices. '
-             'If set, the rounding line will use this product instead of just the rounding name.',
     )
 
 
@@ -66,23 +64,19 @@ class AccountMove(models.Model):
                 else:
                     account_id = rounding_method.profit_account_id.id
 
-                rounding_line_vals['account_id'] = account_id
-                rounding_line_vals['tax_ids'] = [Command.clear()]
+                rounding_line_vals.update({
+                    'name': rounding_method.name,
+                    'account_id': account_id,
+                    'tax_ids': [Command.clear()],
+                })
 
                 if rounding_method.product_id:
-                    product = rounding_method.product_id
-                    rounding_line_vals.update({
-                        'product_id': product.id,
-                        'product_uom_id': product.uom_id.id,
-                        'name': product.partner_ref or product.name,
-                    })
-                else:
-                    rounding_line_vals['name'] = rounding_method.name
+                    rounding_line_vals['product_id'] = rounding_method.product_id.id
 
             if cash_rounding_line:
                 cash_rounding_line.write(rounding_line_vals)
             else:
-                cash_rounding_line = self.env['account.move.line'].create(rounding_line_vals)
+                self.env['account.move.line'].create(rounding_line_vals)
 
         existing_cash_rounding_line = self.line_ids.filtered(lambda line: line.display_type == 'rounding')
 
