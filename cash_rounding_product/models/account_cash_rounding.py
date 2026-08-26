@@ -1,6 +1,6 @@
 import logging
 
-from odoo import Command, fields, models
+from odoo import Command, fields, models, api
 from odoo.tools import float_compare, float_round
 
 _logger = logging.getLogger(__name__)
