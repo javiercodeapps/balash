@@ -18,7 +18,7 @@ Features:
 - Works with both 'Add a rounding line' and POS rounding strategies
 """,
     'author': 'Codeapps - Javier Pepe',
-    'depends': ['account', 'product'],
+    'depends': ['account', 'product', 'point_of_sale'],
     'data': [
         'security/ir.model.access.csv',
         'views/account_cash_rounding_views.xml',
