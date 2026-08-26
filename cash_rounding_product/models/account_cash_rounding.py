@@ -87,6 +87,8 @@ class AccountMove(models.Model):
             'name': product.name,
             'product_id': product.id,
             'product_uom_id': product.uom_id.id,
+            'quantity': 1.0,
+            'price_unit': base_amount,
             'tax_ids': [Command.set(taxes.ids)],
             'amount_currency': base_amount,
             'balance': base_balance,
@@ -104,21 +106,3 @@ class AccountMove(models.Model):
                 **line_vals,
                 'move_id': self.id,
             })
-
-        self._rounding_log(rounding_method, diff_amount_currency, base_amount, total_tax_rate)
-
-    def _rounding_log(self, rounding_method, diff_amount, base_amount, tax_rate):
-        product_lines = self.invoice_line_ids.filtered(
-            lambda line: line.product_id == rounding_method.product_id
-        )
-        tax_lines = self.line_ids.filtered(lambda line: line.display_type == 'tax')
-
-        _logger.warning("=== ROUNDING DEBUG move=%s ===", self.id)
-        _logger.warning("  rounding diff_amount=%.4f base_amount=%.4f tax_rate=%.4f", diff_amount, base_amount, tax_rate)
-        _logger.warning("  product line: amount_currency=%.4f price_subtotal=%.4f",
-            product_lines[:1].amount_currency if product_lines else 0,
-            product_lines[:1].price_subtotal if product_lines else 0)
-        for tl in tax_lines:
-            _logger.warning("  tax line: %s amount_currency=%.4f", tl.name, tl.amount_currency)
-        _logger.warning("  amount_untaxed=%.4f amount_tax=%.4f amount_total=%.4f",
-            self.amount_untaxed, self.amount_tax, self.amount_total)
