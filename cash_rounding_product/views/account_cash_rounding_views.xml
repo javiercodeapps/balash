@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_cash_rounding_form_inherit_product" model="ir.ui.view">
+        <field name="name">account.cash.rounding.form.inherit.product</field>
+        <field name="model">account.cash.rounding</field>
+        <field name="inherit_id" ref="account.rounding_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='loss_account_id']" position="after">
+                <field name="product_id" placeholder="e.g. Rounding Adjustment"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
