@@ -1,4 +1,4 @@
-from odoo import Command, api, fields, models
+from odoo import Command, fields, models
 
 
 class AccountCashRounding(models.Model):
@@ -23,17 +23,13 @@ class AccountMove(models.Model):
 
         rounding_lines = self.line_ids.filtered(lambda line: line.display_type == 'rounding')
         for rl in rounding_lines:
-            vals = {}
             if not rl.product_id:
-                vals['product_id'] = rounding_method.product_id.id
-            if vals:
                 rl.product_id = rounding_method.product_id.id
 
 
 class AccountMoveLine(models.Model):
     _inherit = 'account.move.line'
 
-    @api.depends('product_id', 'partner_id', 'company_id', 'fiscal_position_id')
     def _compute_tax_ids(self):
-        rounding_lines = self.filtered(lambda line: line.display_type == 'rounding')
-        super(AccountMoveLine, self - rounding_lines)._compute_tax_ids()
+        rounding = self.filtered(lambda line: line.display_type == 'rounding')
+        super(AccountMoveLine, self - rounding)._compute_tax_ids()
