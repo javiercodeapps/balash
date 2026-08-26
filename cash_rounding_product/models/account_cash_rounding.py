@@ -30,6 +30,8 @@ class AccountMove(models.Model):
             return diff_balance, diff_amount_currency
 
         def _apply_cash_rounding(self, diff_balance, diff_amount_currency, cash_rounding_line):
+            rounding_method = self.invoice_cash_rounding_id
+
             rounding_line_vals = {
                 'balance': diff_balance,
                 'amount_currency': diff_amount_currency,
@@ -40,8 +42,6 @@ class AccountMove(models.Model):
                 'company_currency_id': self.company_id.currency_id.id,
                 'display_type': 'rounding',
             }
-
-            rounding_method = self.invoice_cash_rounding_id
 
             if rounding_method.strategy == 'biggest_tax':
                 biggest_tax_line = None
