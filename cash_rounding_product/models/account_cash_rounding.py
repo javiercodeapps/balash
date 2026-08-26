@@ -66,18 +66,18 @@ class AccountMove(models.Model):
                 else:
                     account_id = rounding_method.profit_account_id.id
 
-                rounding_line_vals.update({
-                    'name': rounding_method.name,
-                    'account_id': account_id,
-                    'tax_ids': [Command.clear()],
-                })
+                rounding_line_vals['account_id'] = account_id
+                rounding_line_vals['tax_ids'] = [Command.clear()]
 
                 if rounding_method.product_id:
                     product = rounding_method.product_id
                     rounding_line_vals.update({
                         'product_id': product.id,
                         'product_uom_id': product.uom_id.id,
+                        'name': product.partner_ref or product.name,
                     })
+                else:
+                    rounding_line_vals['name'] = rounding_method.name
 
             if cash_rounding_line:
                 cash_rounding_line.write(rounding_line_vals)
