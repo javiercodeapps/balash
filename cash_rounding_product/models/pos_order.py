@@ -25,11 +25,13 @@ class PosOrder(models.Model):
         # 1. Dejamos que Odoo cree el borrador de la factura normalmente
         new_move = super(PosOrder, self)._create_invoice(move_vals)
 
+        cash_rounding = self.config_id.cash_rounding_id
+        
         for move in new_move:
             # --- LOG DE DIAGNÓSTICO: Inspección Inicial ---
             _logger.info("=================== INTERCEPTANDO FACTURA DESDE POS ===================")
             _logger.info("Factura ID: %s | Origen POS: %s", move.id, move.invoice_origin)
-            _logger.info("¿Tiene método de redondeo?: %s", move.cash_rounding_id.name if move.cash_rounding_id else 'NO')
+            _logger.info("¿Tiene método de redondeo?: %s", cash_rounding.name if cash_rounding else 'NO')
             
             _logger.info("PRODUCTOS INICIALES ENVIADOS POR EL POS:")
             for line in move.invoice_line_ids:
@@ -40,8 +42,8 @@ class PosOrder(models.Model):
             _logger.info("====================================================================")
 
             # 2. Si la factura tiene redondeo contable y tu producto configurado
-            if move.cash_rounding_id and move.cash_rounding_id.product_id:
-                rounding_product = move.cash_rounding_id.product_id
+            if cash_rounding and cash_rounding.product_id:
+                rounding_product = cash_rounding.product_id
                 
                 # Buscamos las líneas de redondeo técnicas ocultas que rompen ARCA
                 rounding_lines = move.line_ids.filtered(lambda l: l.is_rounding_line)
