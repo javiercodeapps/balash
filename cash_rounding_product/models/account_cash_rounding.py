@@ -46,10 +46,10 @@ class AccountMove(models.Model):
 
         for move in self:
             # --- LOG DE DIAGNÓSTICO: Productos antes del proceso ---
-            _logger.info("=================== AUDITORÍA DE FACTURA POS: %s ===================", move.name or 'Borrador')
-            _logger.info("PRODUCTOS DETECTADOS EN LA FACTURA ANTES DEL REDONDEO:")
+            _logger.warning("=================== AUDITORÍA DE FACTURA POS: %s ===================", move.name or 'Borrador')
+            _logger.warning("PRODUCTOS DETECTADOS EN LA FACTURA ANTES DEL REDONDEO:")
             for line in move.invoice_line_ids:
-                _logger.info(
+                _logger.warning(
                     "- Producto: %s | Cantidad: %s | Precio Unitario: %s | Total Línea: %s | Impuestos ID: %s",
                     line.product_id.name, 
                     line.quantity, 
@@ -57,8 +57,8 @@ class AccountMove(models.Model):
                     line.price_total,
                     line.tax_ids.ids
                 )
-            _logger.info("Monto Total de la Factura (ImpTotal): %s", move.amount_total)
-            _logger.info("====================================================================")
+            _logger.warning("Monto Total de la Factura (ImpTotal): %s", move.amount_total)
+            _logger.warning("====================================================================")
 
             if move.cash_rounding_id and move.cash_rounding_id.rounding_product_id and move.is_invoice():
                 rounding_product = move.cash_rounding_id.product_id
@@ -67,7 +67,7 @@ class AccountMove(models.Model):
                 if rounding_lines:
                     rounding_amount = sum(line.balance for line in rounding_lines)
                     
-                    _logger.info(">>> Redondeo técnico nativo detectado: %s. Reemplazando por línea de producto...", rounding_amount)
+                    _logger.warning(">>> Redondeo técnico nativo detectado: %s. Reemplazando por línea de producto...", rounding_amount)
                     
                     # Eliminamos la línea técnica nativa que rompe la polinómica
                     move.line_ids -= rounding_lines
@@ -96,7 +96,7 @@ class AccountMove(models.Model):
                     move._compute_tax_totals()
                     
                     # --- LOG DE DIAGNÓSTICO: Verificación Post-Inyección ---
-                    _logger.info(">>> LÍNEA DE REDONDEO INYECTADA CON ÉXITO:")
-                    _logger.info("- Producto: %s | Precio: %s | Impuestos: %s", rounding_product.name, price_unit, new_rounding_line.tax_ids.ids)
-                    _logger.info("Nuevo Monto Total Calculado (Post-Redondeo): %s", move.amount_total)
-                    _logger.info("====================================================================")
+                    _logger.warning(">>> LÍNEA DE REDONDEO INYECTADA CON ÉXITO:")
+                    _logger.warning("- Producto: %s | Precio: %s | Impuestos: %s", rounding_product.name, price_unit, new_rounding_line.tax_ids.ids)
+                    _logger.warning("Nuevo Monto Total Calculado (Post-Redondeo): %s", move.amount_total)
+                    _logger.warning("====================================================================")
