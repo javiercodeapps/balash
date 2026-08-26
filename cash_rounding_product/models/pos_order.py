@@ -25,7 +25,7 @@ class PosOrder(models.Model):
         # 1. Dejamos que Odoo cree el borrador de la factura normalmente
         new_move = super(PosOrder, self)._create_invoice(move_vals)
 
-        cash_rounding = self.config_id.cash_rounding_id
+        cash_rounding = getattr(self.config_id, 'rounding_method', False) or getattr(self.config_id, 'cash_rounding_id', False)
         
         for move in new_move:
             # --- LOG DE DIAGNÓSTICO: Inspección Inicial ---
