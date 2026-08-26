@@ -15,6 +15,11 @@ class AccountMove(models.Model):
     _inherit = 'account.move'
 
     def _recompute_cash_rounding_lines(self):
+        if self.pos_order_ids:
+            if self.invoice_cash_rounding_id:
+                self.invoice_cash_rounding_id = False
+            return
+
         super()._recompute_cash_rounding_lines()
 
         rounding_method = self.invoice_cash_rounding_id
@@ -23,13 +28,10 @@ class AccountMove(models.Model):
 
         rounding_lines = self.line_ids.filtered(lambda line: line.display_type == 'rounding')
         for rl in rounding_lines:
+            vals = {}
             if not rl.product_id:
-                rl.product_id = rounding_method.product_id.id
-
-
-class AccountMoveLine(models.Model):
-    _inherit = 'account.move.line'
-
-    def _compute_tax_ids(self):
-        rounding = self.filtered(lambda line: line.display_type == 'rounding')
-        super(AccountMoveLine, self - rounding)._compute_tax_ids()
+                vals['product_id'] = rounding_method.product_id.id
+            if rl.tax_ids:
+                vals['tax_ids'] = [Command.clear()]
+            if vals:
+                rl.with_context(skip_invoice_sync=True).write(vals)
