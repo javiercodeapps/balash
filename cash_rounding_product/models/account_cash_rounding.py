@@ -26,7 +26,7 @@ _logger = logging.getLogger(__name__)
 class AccountCashRounding(models.Model):
     _inherit = 'account.cash.rounding'
 
-    _product_id = fields.Many2one(
+    product_id = fields.Many2one(
         'product.product', 
         string='Producto de Redondeo (AFIP)',
         domain=[('type', '=', 'service')],
