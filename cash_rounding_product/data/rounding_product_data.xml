@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="product_product_rounding" model="product.product">
-        <field name="name">Redondeo</field>
+        <field name="name">Ajuste por Redondeo</field>
         <field name="type">service</field>
         <field name="list_price">0.0</field>
         <field name="taxes_id" eval="[(5,)]"/>
         <field name="supplier_taxes_id" eval="[(5,)]"/>
-        <field name="categ_id" ref="product.product_category_all"/>
     </record>
 </odoo>
