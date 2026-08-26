@@ -19,90 +19,35 @@ class AccountCashRounding(models.Model):
 class AccountMove(models.Model):
     _inherit = 'account.move'
 
-    def _recompute_cash_rounding_lines(self):
-        rounding_method = self.invoice_cash_rounding_id
+    @api.depends('invoice_line_ids')
+    def _compute_cash_rounding(self):
+        """
+        Odoo nativo calcula el redondeo y crea una línea huérfana en 'line_ids'.
+        Heredamos el método para forzar que esa línea use tu producto y sus impuestos.
+        """
+        # Ejecutamos primero el cálculo nativo de Odoo para que cree la diferencia
+        super(AccountMove, self)._compute_cash_rounding()
 
-        if rounding_method and rounding_method.product_id:
-            self._recompute_cash_rounding_with_product(rounding_method)
-            return
-
-        super()._recompute_cash_rounding_lines()
-
-    def _recompute_cash_rounding_with_product(self, rounding_method):
-        self.ensure_one()
-
-        self.line_ids.filtered(lambda line: line.display_type == 'rounding').unlink()
-
-        existing_product_line = self.line_ids.filtered(
-            lambda line: line.display_type == 'product'
-            and line.product_id == rounding_method.product_id
-        )
-
-        if not self.invoice_cash_rounding_id:
-            existing_product_line.unlink()
-            return
-
-        others_lines = self.line_ids.filtered(
-            lambda line: line.account_id.account_type not in ('asset_receivable', 'liability_payable')
-            and line.display_type == 'product'
-            and (not rounding_method.product_id or line.product_id != rounding_method.product_id)
-        )
-        total_amount_currency = sum(others_lines.mapped('amount_currency'))
-
-        difference = rounding_method.compute_difference(self.currency_id, total_amount_currency)
-        if self.currency_id == self.company_id.currency_id:
-            diff_amount_currency = diff_balance = difference
-        else:
-            diff_amount_currency = difference
-            diff_balance = self.currency_id._convert(
-                diff_amount_currency, self.company_id.currency_id,
-                self.company_id, self.invoice_date or self.date,
-            )
-
-        if self.currency_id.is_zero(diff_amount_currency):
-            existing_product_line.unlink()
-            return
-
-        if existing_product_line \
-            and float_compare(existing_product_line.amount_currency, diff_amount_currency, precision_rounding=self.currency_id.rounding) == 0:
-            return
-
-        product = rounding_method.product_id
-        taxes = product.taxes_id
-        total_tax_rate = sum(taxes.mapped('amount')) / 100.0 if taxes else 0.0
-
-        if total_tax_rate > 0:
-            base_amount = float_round(diff_amount_currency / (1.0 + total_tax_rate), precision_rounding=self.currency_id.rounding)
-            base_balance = float_round(diff_balance / (1.0 + total_tax_rate), precision_rounding=self.company_id.currency_id.rounding)
-        else:
-            base_amount = diff_amount_currency
-            base_balance = diff_balance
-
-        if diff_balance > 0.0 and rounding_method.loss_account_id:
-            account_id = rounding_method.loss_account_id.id
-        else:
-            account_id = rounding_method.profit_account_id.id
-
-        line_vals = {
-            'name': product.name,
-            'product_id': product.id,
-            'product_uom_id': product.uom_id.id,
-            'quantity': 1.0,
-            'price_unit': base_amount,
-            'tax_ids': [Command.set(taxes.ids)],
-            'amount_currency': base_amount,
-            'balance': base_balance,
-            'account_id': account_id,
-            'partner_id': self.partner_id.id,
-            'currency_id': self.currency_id.id,
-            'company_id': self.company_id.id,
-            'display_type': 'product',
-        }
-
-        if existing_product_line:
-            existing_product_line.with_context(skip_invoice_sync=True).write(line_vals)
-        else:
-            self.env['account.move.line'].with_context(skip_invoice_sync=True).create({
-                **line_vals,
-                'move_id': self.id,
-            })
+        for move in self:
+            # Si la factura tiene un método de redondeo asignado y tiene tu producto configurado
+            if move.cash_rounding_id and move.cash_rounding_id.rounding_product_id:
+                rounding_product = move.cash_rounding_id.product_id
+                
+                # Buscamos la línea de redondeo que Odoo acaba de crear en el asiento (suele no tener product_id)
+                rounding_lines = move.line_ids.filtered(lambda l: l.is_rounding_line)
+                
+                for line in rounding_lines:
+                    # Forzamos los datos del producto para que la Localización Argentina la procese correctamente
+                    line.write({
+                        'product_id': rounding_product.id,
+                        'name': rounding_product.display_name or line.name,
+                        'product_uom_id': rounding_product.uom_id.id,
+                        # Sincronizamos las cuentas contables del producto si es necesario
+                        'account_id': rounding_product.property_account_income_id.id or line.account_id.id,
+                    })
+                    
+                    # ASIGNACIÓN DE IMPUESTOS: Clave para AFIP
+                    if rounding_product.taxes_id:
+                        # Filtrar impuestos correctos según la compañía de la factura
+                        taxes = rounding_product.taxes_id.filtered(lambda t: t.company_id == move.company_id)
+                        line.tax_ids = [(6, 0, taxes.ids)]
