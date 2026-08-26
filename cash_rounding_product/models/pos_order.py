@@ -46,8 +46,7 @@ class PosOrder(models.Model):
                 rounding_product = cash_rounding.product_id
                 
                 # Buscamos las líneas de redondeo técnicas ocultas que rompen ARCA
-                rounding_lines = move.line_ids.filtered(lambda l: l.is_rounding_line)
-                
+                rounding_lines = move.line_ids.filtered(lambda l: l.display_type == 'rounding')
                 if rounding_lines:
                     rounding_amount = sum(line.balance for line in rounding_lines)
                     _logger.info(">>> Redondeo técnico nativo detectado en asiento: %s. Reemplazando...", rounding_amount)
