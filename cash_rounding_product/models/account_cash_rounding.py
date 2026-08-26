@@ -51,3 +51,7 @@ class AccountMove(models.Model):
                         # Filtrar impuestos correctos según la compañía de la factura
                         taxes = rounding_product.taxes_id.filtered(lambda t: t.company_id == move.company_id)
                         line.tax_ids = [(6, 0, taxes.ids)]
+                # RECALCULO DE LA POLINÓMICA: Esto resuelve el error 10048
+                # Forzamos a Odoo a re-computar las bases del IVA y totales de la localización argentina
+                if rounding_lines:
+                    move._recompute_tax_lines()
