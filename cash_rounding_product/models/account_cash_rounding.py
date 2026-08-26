@@ -1,8 +1,4 @@
-import logging
-
 from odoo import Command, fields, models
-
-_logger = logging.getLogger(__name__)
 
 
 class AccountCashRounding(models.Model):
