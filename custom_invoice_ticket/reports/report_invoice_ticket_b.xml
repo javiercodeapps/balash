@@ -15,8 +15,7 @@
                             <img t-if="o.company_id.logo" t-att-src="image_data_uri(o.company_id.logo)" style="max-height: 80px; max-width: 100%;" alt="Logo" />
                             
                             <h2>
-                                 Presupuesto Clientes X</h2>
-                                 No Valido como Factura
+                                 Comprobante de Caja</h2>
                         </center>
                         <t t-out="o.company_id.partner_id.name"/>
 
@@ -106,9 +105,11 @@
                             </th>
                         </tr>
                     </table>
-
                 <div class="text-center mt-3 font-italic" style="font-size: 10px;">Gracias por su compra</div>
                 </div>
+                <div class="text-center mt-3 font-italic" style="font-size: 8px;">no valida como factura</div>
+                </div>
+
             </t>
         </t>
     </template>

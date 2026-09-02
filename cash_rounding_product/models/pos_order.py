@@ -28,19 +28,7 @@ class PosOrder(models.Model):
         cash_rounding = getattr(self.config_id, 'rounding_method', False) or getattr(self.config_id, 'cash_rounding_id', False)
         
         for move in new_move:
-            # --- LOG DE DIAGNÓSTICO: Inspección Inicial ---
-            _logger.info("=================== INTERCEPTANDO FACTURA DESDE POS ===================")
-            _logger.info("Factura ID: %s | Origen POS: %s", move.id, move.invoice_origin)
-            _logger.info("¿Tiene método de redondeo?: %s", cash_rounding.name if cash_rounding else 'NO')
-            
-            _logger.info("PRODUCTOS INICIALES ENVIADOS POR EL POS:")
             for line in move.invoice_line_ids:
-                _logger.info(
-                    "- %s | Cant: %s | Precio: %s | Impuestos ID: %s",
-                    line.product_id.name, line.quantity, line.price_unit, line.tax_ids.ids
-                )
-            _logger.info("====================================================================")
-
             # 2. Si la factura tiene redondeo contable y tu producto configurado
             if cash_rounding and cash_rounding.product_id:
                 rounding_product = cash_rounding.product_id
@@ -49,7 +37,6 @@ class PosOrder(models.Model):
                 rounding_lines = move.line_ids.filtered(lambda l: l.display_type == 'rounding')
                 if rounding_lines:
                     rounding_amount = sum(line.balance for line in rounding_lines)
-                    _logger.info(">>> Redondeo técnico nativo detectado en asiento: %s. Reemplazando...", rounding_amount)
                     
                     # Eliminamos la línea técnica nativa
                     move.line_ids -= rounding_lines
@@ -69,12 +56,8 @@ class PosOrder(models.Model):
                         'tax_ids': [(6, 0, rounding_product.taxes_id.filtered(lambda t: t.company_id == move.company_id).ids)] if rounding_product.taxes_id else [],
                     })
                     
-                    _logger.info(">>> ¡Línea de producto de redondeo creada exitosamente en la factura!")
                     
                     # 4. Forzamos el recálculo total de la factura para reestructurar la polinómica de AFIP
                     move._compute_tax_totals()
-                    
-                    _logger.info(">>> NUEVO TOTAL DE LA FACTURA RECALCULADO: %s", move.amount_total)
-                    _logger.info("====================================================================")
                     
         return new_move
